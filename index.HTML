@@ -1,0 +1,971 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Explore Teshikaga, Hokkaido, Japan. Discover Lake Mashu, Lake Kussharo, hot springs, restaurants and local experiences.">
+  <title>Explore Teshikaga | Hokkaido, Japan</title>
+
+  <!-- Leaflet map library -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <style>
+    :root {
+      --primary: #176b55;
+      --primary-dark: #104d3e;
+      --accent: #e9a23b;
+      --background: #f5f7f4;
+      --surface: #ffffff;
+      --text: #26332e;
+      --muted: #718078;
+      --border: #e2e8e3;
+      --shadow: 0 4px 18px rgba(24, 48, 36, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--background);
+      color: var(--text);
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .header {
+      background: var(--primary);
+      color: white;
+      padding: 20px 24px;
+    }
+
+    .header-inner {
+      max-width: 1500px;
+      margin: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .brand {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand span {
+      display: block;
+      font-size: 12px;
+      font-weight: 400;
+      opacity: 0.85;
+      letter-spacing: 1px;
+      margin-top: 5px;
+    }
+
+    .header-badge {
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 30px;
+      padding: 8px 14px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .intro {
+      max-width: 1500px;
+      margin: auto;
+      padding: 24px;
+    }
+
+    .intro h1 {
+      font-size: clamp(24px, 3vw, 36px);
+      margin: 0 0 10px;
+      color: var(--primary-dark);
+    }
+
+    .intro p {
+      max-width: 760px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    .main {
+      max-width: 1500px;
+      margin: auto;
+      padding: 0 24px 30px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 220px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 13px 16px 13px 42px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: white;
+      outline: none;
+    }
+
+    .search-box input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(23,107,85,0.1);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 15px;
+      top: 13px;
+      color: var(--muted);
+    }
+
+    .location-button {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 16px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .location-button:hover {
+      background: #edf5ef;
+    }
+
+    .categories {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .category-button {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 9px 15px;
+      color: #526159;
+      font-size: 13px;
+      transition: 0.2s;
+    }
+
+    .category-button:hover,
+    .category-button.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .map-layout {
+      display: grid;
+      grid-template-columns: 350px minmax(0, 1fr);
+      gap: 18px;
+      height: 650px;
+    }
+
+    .sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .sidebar-header {
+      padding: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header h2 {
+      font-size: 18px;
+      margin: 0 0 5px;
+    }
+
+    .sidebar-header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .place-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .place-card {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .place-card:hover {
+      background: #f2f7f3;
+    }
+
+    .place-card.selected {
+      background: #eaf4ed;
+      border-left: 4px solid var(--primary);
+      padding-left: 14px;
+    }
+
+    .place-category {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .place-card h3 {
+      font-size: 15px;
+      margin: 7px 0;
+    }
+
+    .place-card p {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .map-container {
+      position: relative;
+      min-width: 0;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+      background: #e8eee7;
+    }
+
+    .map-label {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 500;
+      background: rgba(255,255,255,0.95);
+      padding: 10px 14px;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+
+    .map-legend {
+      position: absolute;
+      bottom: 22px;
+      left: 12px;
+      z-index: 500;
+      background: rgba(255,255,255,0.96);
+      padding: 12px 14px;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      font-size: 11px;
+      line-height: 1.8;
+    }
+
+    .legend-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      margin-right: 7px;
+    }
+
+    .info-section {
+      margin-top: 30px;
+    }
+
+    .info-section h2 {
+      font-size: 22px;
+      color: var(--primary-dark);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .info-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .info-card h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .info-card p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    .notice {
+      margin-top: 20px;
+      background: #fff7e8;
+      border: 1px solid #f2dfbd;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #795a2a;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .leaflet-popup-content {
+      margin: 14px;
+      min-width: 180px;
+    }
+
+    .popup-category {
+      color: var(--primary);
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .popup-title {
+      font-size: 15px;
+      font-weight: bold;
+      margin: 6px 0;
+    }
+
+    .popup-description {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #59675f;
+    }
+
+    .popup-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .popup-link:hover {
+      text-decoration: underline;
+    }
+
+    .empty-state {
+      padding: 30px 18px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 850px) {
+      .map-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      .sidebar {
+        height: 300px;
+      }
+
+      .map-container {
+        height: 480px;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header-inner {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .intro, .main {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        padding: 18px 16px;
+      }
+
+      .brand {
+        font-size: 21px;
+      }
+
+      .location-button {
+        width: 100%;
+      }
+
+      .map-container {
+        height: 420px;
+      }
+
+      .map-label {
+        font-size: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        EXPLORE TESHIKAGA
+        <span>HOKKAIDO · JAPAN</span>
+      </div>
+      <div class="header-badge">Your local travel guide</div>
+    </div>
+  </header>
+
+  <section class="intro">
+    <h1>Discover the beauty of Teshikaga</h1>
+    <p>
+      Explore crystal-clear lakes, volcanic landscapes, relaxing hot springs,
+      local food and unforgettable outdoor experiences in the heart of
+      eastern Hokkaido.
+    </p>
+  </section>
+
+  <main class="main">
+
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input
+          type="search"
+          id="searchInput"
+          placeholder="Search places, activities or services..."
+          aria-label="Search tourist locations"
+        >
+      </div>
+
+      <button class="location-button" id="locationButton">
+        ◎ Show my location
+      </button>
+    </div>
+
+    <div class="categories" id="categoryButtons">
+      <button class="category-button active" data-category="All">All places</button>
+      <button class="category-button" data-category="Attractions">Attractions</button>
+      <button class="category-button" data-category="Food">Food & Cafes</button>
+      <button class="category-button" data-category="Accommodation">Hotels & Hot Springs</button>
+      <button class="category-button" data-category="Transport">Transportation</button>
+      <button class="category-button" data-category="Activities">Activities</button>
+    </div>
+
+    <div class="map-layout">
+
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Explore places</h2>
+          <p id="resultCount">Loading places...</p>
+        </div>
+        <div class="place-list" id="placeList"></div>
+      </aside>
+
+      <section class="map-container">
+        <div class="map-label">Teshikaga & surrounding areas</div>
+        <div id="map"></div>
+
+        <div class="map-legend">
+          <div><span class="legend-dot" style="background:#176b55"></span>Attractions</div>
+          <div><span class="legend-dot" style="background:#e9a23b"></span>Food & Cafes</div>
+          <div><span class="legend-dot" style="background:#4b83c3"></span>Hotels & Hot Springs</div>
+          <div><span class="legend-dot" style="background:#8a6ab0"></span>Transport</div>
+          <div><span class="legend-dot" style="background:#d66c79"></span>Activities</div>
+        </div>
+      </section>
+
+    </div>
+
+    <section class="info-section">
+      <h2>Plan your visit</h2>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h3>Getting around</h3>
+          <p>
+            Teshikaga is a large rural area. Rental cars are a convenient
+            way to explore the lakes, viewpoints and hot spring areas.
+            Bus services are available on selected routes.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <h3>Nature & seasons</h3>
+          <p>
+            Enjoy the changing landscapes throughout the year, from
+            clear summer lakes and autumn colors to snowy winter scenery.
+            Weather and road conditions can change quickly.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <h3>Travel responsibly</h3>
+          <p>
+            Please respect wildlife, stay on designated trails,
+            follow local rules and take your rubbish with you.
+            Some natural areas have restricted access.
+          </p>
+        </div>
+      </div>
+
+      <div class="notice">
+        <strong>Travel information:</strong>
+        This is a demonstration website. Place information and coordinates
+        are provided as an initial sample and should be verified before
+        publication. Opening hours, transportation schedules and seasonal
+        access may change. Please check official sources before visiting.
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    Explore Teshikaga · Hokkaido, Japan
+    <br>
+    Map data © OpenStreetMap contributors
+  </footer>
+
+  <!-- Leaflet JavaScript -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // --------------------------------------------------
+    // 1. Map setup
+    // --------------------------------------------------
+
+    const map = L.map("map", {
+      scrollWheelZoom: true
+    }).setView([43.57, 144.45], 10);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // --------------------------------------------------
+    // 2. Sample tourist locations
+    // Coordinates are approximate.
+    // Verify before publication.
+    // --------------------------------------------------
+
+    const places = [
+      {
+        id: 1,
+        name: "Lake Mashu",
+        category: "Attractions",
+        lat: 43.57,
+        lng: 144.53,
+        description: "A stunning caldera lake famous for its deep blue water and dramatic views.",
+        address: "Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 2,
+        name: "Lake Kussharo",
+        category: "Attractions",
+        lat: 43.61,
+        lng: 144.34,
+        description: "A beautiful volcanic lake surrounded by forests and natural hot springs.",
+        address: "Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 3,
+        name: "Mount Io",
+        category: "Attractions",
+        lat: 43.57,
+        lng: 144.44,
+        description: "An active volcano with steaming vents and colorful mineral landscapes.",
+        address: "Kawayu, Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 4,
+        name: "Lake Mashu First Observatory",
+        category: "Attractions",
+        lat: 43.57,
+        lng: 144.53,
+        description: "A popular viewpoint overlooking the mysterious Lake Mashu.",
+        address: "Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 5,
+        name: "Lake Mashu Third Observatory",
+        category: "Attractions",
+        lat: 43.59,
+        lng: 144.55,
+        description: "A scenic viewpoint offering a different perspective of Lake Mashu.",
+        address: "Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 6,
+        name: "900 Grassland",
+        category: "Attractions",
+        lat: 43.52,
+        lng: 144.39,
+        description: "Open grassland with wide views of the surrounding countryside.",
+        address: "Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 7,
+        name: "Kawayu Onsen",
+        category: "Accommodation",
+        lat: 43.57,
+        lng: 144.44,
+        description: "A hot spring town known for its mineral-rich waters and volcanic surroundings.",
+        address: "Kawayu Onsen, Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 8,
+        name: "Sunayu Hot Spring",
+        category: "Accommodation",
+        lat: 43.62,
+        lng: 144.34,
+        description: "A lakeside hot spring area where warm water can be found near the shore.",
+        address: "Lake Kussharo, Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 9,
+        name: "Mashu Station",
+        category: "Transport",
+        lat: 43.49,
+        lng: 144.46,
+        description: "A railway station serving the Teshikaga area.",
+        address: "Mashu Station, Teshikaga, Hokkaido",
+        website: "https://www.jrhokkaido.co.jp/"
+      },
+      {
+        id: 10,
+        name: "Kawayu Onsen Station",
+        category: "Transport",
+        lat: 43.62,
+        lng: 144.43,
+        description: "A railway station near Kawayu Onsen and Mount Io.",
+        address: "Kawayu Onsen Station, Teshikaga, Hokkaido",
+        website: "https://www.jrhokkaido.co.jp/"
+      },
+      {
+        id: 11,
+        name: "Lake Kussharo Canoeing",
+        category: "Activities",
+        lat: 43.61,
+        lng: 144.34,
+        description: "Explore the lake by canoe and enjoy the surrounding natural scenery.",
+        address: "Lake Kussharo, Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 12,
+        name: "渡辺体験牧場",
+        category: "Activities",
+        lat: 43.50,
+        lng: 144.47,
+        description: "A local dairy farm offering hands-on farm experiences.",
+        address: "Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 13,
+        name: "Kawayu Visitor Center",
+        category: "Attractions",
+        lat: 43.57,
+        lng: 144.44,
+        description: "Learn about the nature and volcanic landscapes of the area.",
+        address: "Kawayu, Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      },
+      {
+        id: 14,
+        name: "Teshikaga Town Center",
+        category: "Food",
+        lat: 43.49,
+        lng: 144.46,
+        description: "Explore local restaurants, cafes and shops in the town center.",
+        address: "Teshikaga, Hokkaido",
+        website: "https://www.masyuko.or.jp/"
+      }
+    ];
+
+    // --------------------------------------------------
+    // 3. Marker colors
+    // --------------------------------------------------
+
+    const categoryColors = {
+      Attractions: "#176b55",
+      Food: "#e9a23b",
+      Accommodation: "#4b83c3",
+      Transport: "#8a6ab0",
+      Activities: "#d66c79"
+    };
+
+    const categoryIcons = {
+      Attractions: "★",
+      Food: "●",
+      Accommodation: "♨",
+      Transport: "↗",
+      Activities: "◆"
+    };
+
+    const markerLayer = L.layerGroup().addTo(map);
+    const markers = {};
+    let selectedCategory = "All";
+    let selectedPlaceId = null;
+
+    function createMarkerIcon(category) {
+      const color = categoryColors[category] || "#176b55";
+      const icon = categoryIcons[category] || "●";
+
+      return L.divIcon({
+        className: "custom-marker",
+        html: `
+          <div style="
+            width:30px;
+            height:30px;
+            background:${color};
+            color:white;
+            border:3px solid white;
+            border-radius:50%;
+            box-shadow:0 2px 7px rgba(0,0,0,0.25);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:13px;
+            font-weight:bold;
+          ">${icon}</div>
+        `,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+    }
+
+    // --------------------------------------------------
+    // 4. Create markers and popups
+    // --------------------------------------------------
+
+    places.forEach(place => {
+      const marker = L.marker(
+        [place.lat, place.lng],
+        { icon: createMarkerIcon(place.category) }
+      );
+
+      const popupContent = `
+        <div>
+          <div class="popup-category">${place.category}</div>
+          <div class="popup-title">${place.name}</div>
+          <div class="popup-description">${place.description}</div>
+          <div class="popup-description" style="margin-top:6px">
+            ${place.address}
+          </div>
+          <a class="popup-link"
+             href="${place.website}"
+             target="_blank"
+             rel="noopener noreferrer">
+            More information ↗
+          </a>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent);
+
+      marker.on("click", () => {
+        selectedPlaceId = place.id;
+        renderPlaceList();
+      });
+
+      markers[place.id] = marker;
+    });
+
+    // --------------------------------------------------
+    // 5. Search and category filtering
+    // --------------------------------------------------
+
+    const searchInput = document.getElementById("searchInput");
+    const placeList = document.getElementById("placeList");
+    const resultCount = document.getElementById("resultCount");
+
+    function getFilteredPlaces() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+
+      return places.filter(place => {
+        const matchesCategory =
+          selectedCategory === "All" ||
+          place.category === selectedCategory;
+
+        const searchableText = [
+          place.name,
+          place.category,
+          place.description,
+          place.address
+        ].join(" ").toLowerCase();
+
+        const matchesSearch = searchableText.includes(searchTerm);
+
+        return matchesCategory && matchesSearch;
+      });
+    }
+
+    function renderPlaceList() {
+      const filteredPlaces = getFilteredPlaces();
+
+      placeList.innerHTML = "";
+      resultCount.textContent =
+        `${filteredPlaces.length} places found`;
+
+      markerLayer.clearLayers();
+
+      if (filteredPlaces.length === 0) {
+        placeList.innerHTML = `
+          <div class="empty-state">
+            No places found.<br>
+            Try another search.
+          </div>
+        `;
+        return;
+      }
+
+      filteredPlaces.forEach(place => {
+        const card = document.createElement("div");
+
+        card.className = "place-card" +
+          (selectedPlaceId === place.id ? " selected" : "");
+
+        card.innerHTML = `
+          <div class="place-category">${place.category}</div>
+          <h3>${place.name}</h3>
+          <p>${place.description}</p>
+        `;
+
+        card.addEventListener("click", () => {
+          selectedPlaceId = place.id;
+
+          map.flyTo(
+            [place.lat, place.lng],
+            13,
+            { duration: 1 }
+          );
+
+          markers[place.id].openPopup();
+
+          renderPlaceList();
+        });
+
+        placeList.appendChild(card);
+
+        markers[place.id].addTo(markerLayer);
+      });
+    }
+
+    searchInput.addEventListener("input", renderPlaceList);
+
+    document.querySelectorAll(".category-button").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".category-button").forEach(item => {
+          item.classList.remove("active");
+        });
+
+        button.classList.add("active");
+        selectedCategory = button.dataset.category;
+
+        renderPlaceList();
+      });
+    });
+
+    // --------------------------------------------------
+    // 6. Show current location
+    // --------------------------------------------------
+
+    document.getElementById("locationButton").addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          map.flyTo([lat, lng], 14);
+
+          L.marker([lat, lng])
+            .addTo(map)
+            .bindPopup("You are here")
+            .openPopup();
+        },
+        error => {
+          alert(
+            "Unable to get your location. Please allow location access " +
+            "in your browser settings."
+          );
+        }
+      );
+    });
+
+    // --------------------------------------------------
+    // 7. Initial display
+    // --------------------------------------------------
+
+    renderPlaceList();
+
+  </script>
+
+</body>
+</html>
